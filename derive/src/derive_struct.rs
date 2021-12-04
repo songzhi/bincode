@@ -1,7 +1,7 @@
-use crate::generate::Generator;
-use crate::parse::{FieldAttribute, Fields};
-use crate::prelude::Delimiter;
-use crate::Result;
+use super::FieldAttribute;
+use virtue::generate::Generator;
+use virtue::parse::Fields;
+use virtue::prelude::*;
 
 pub struct DeriveStruct {
     pub fields: Fields,
@@ -16,7 +16,7 @@ impl DeriveStruct {
             .unwrap()
             .generate_fn("encode")
             .with_generic("E", ["bincode::enc::Encoder"])
-            .with_self_arg(crate::generate::FnSelfArg::RefSelf)
+            .with_self_arg(virtue::generate::FnSelfArg::RefSelf)
             .with_arg("mut encoder", "E")
             .with_return_type("core::result::Result<(), bincode::error::EncodeError>")
             .body(|fn_body| {
@@ -25,14 +25,14 @@ impl DeriveStruct {
                         fn_body
                             .push_parsed(format!(
                                 "bincode::Encode::encode(&bincode::serde::Compat(&self.{}), &mut encoder)?;",
-                                field.to_string()
+                                field
                             ))
                             .unwrap();
                     } else {
                         fn_body
                             .push_parsed(format!(
                                 "bincode::enc::Encode::encode(&self.{}, &mut encoder)?;",
-                                field.to_string()
+                                field
                             ))
                             .unwrap();
                     }
@@ -72,14 +72,14 @@ impl DeriveStruct {
                                 struct_body
                                     .push_parsed(format!(
                                         "{}: (<bincode::serde::Compat<_> as bincode::Decode>::decode(&mut decoder)?).0,",
-                                        field.to_string()
+                                        field
                                     ))
                                     .unwrap();
                             } else {
                                 struct_body
                                     .push_parsed(format!(
                                         "{}: bincode::Decode::decode(&mut decoder)?,",
-                                        field.to_string()
+                                        field
                                     ))
                                     .unwrap();
                             }
@@ -97,7 +97,7 @@ impl DeriveStruct {
         let DeriveStruct { fields } = self;
 
         generator
-            .impl_for_with_de_lifetime("bincode::de::BorrowDecode<'__de>")
+            .impl_for_with_lifetimes("bincode::de::BorrowDecode", &["__de"])
             .unwrap()
             .generate_fn("borrow_decode")
             .with_generic("D", ["bincode::de::BorrowDecoder<'__de>"])
@@ -114,14 +114,14 @@ impl DeriveStruct {
                                 struct_body
                                     .push_parsed(format!(
                                         "{}: (<bincode::serde::BorrowCompat<_> as bincode::de::BorrowDecode>::borrow_decode(&mut decoder)?).0,",
-                                        field.to_string()
+                                        field
                                     ))
                                     .unwrap();
                             } else {
                                 struct_body
                                     .push_parsed(format!(
                                         "{}: bincode::de::BorrowDecode::borrow_decode(&mut decoder)?,",
-                                        field.to_string()
+                                        field
                                     ))
                                     .unwrap();
                                 }
